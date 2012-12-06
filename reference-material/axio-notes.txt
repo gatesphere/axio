@@ -1,0 +1,60 @@
+axio - type-free purely functional programming language
+
+// comments
+
+lambda form:
+(\ a :: a)
+(\ a b :: b a)
+etc...
+
+currying happens internally
+(\ a b :: b a) => (\ a :: (\ b :: b a))
+
+primitives (I/Os are unique types internally - ensured single usage)
+(#bind succ (\ a b c :: (a (b a c))))
+  -> binds a symbol to a lambda form (simple text replacement) GLOBALLY
+  -> immutable - once bound, cannot be changed/unbound
+(#halt)
+  -> exit
+
+predefined information
+(#bind true (\ x y :: x))
+(#bind false (\ x y :: y))
+(#bind I (\ x :: x))
+(#bind K true)
+(#bind S (\ x y z :: (x z (y z)))
+(#bind 0 (\ s z :: z))
+(#bind 1 (\ s z :: s z))
+(#bind 2 (\ s z :: s (s z)))
+etc...
+
+example program:
+
+// fibonacci generator
+
+// supporting functions
+(#bind succ (\ w y x :: y (w y x)))
+(#bind + (\ a b :: a succ b))
+(#bind phi (\ a b f :: f a b))
+(#bind sigma (\ x :: phi (x false) (+ (x true) (x false)))) 
+(#bind fib (\ n :: (n sigma (phi 0 1)) false))
+
+// prompt for a number n and write the nth fib number
+(#write_church (fib (#read)))
+
+// exit
+(#halt)
+
+
+grammar:
+
+   lam ::= (\ var1 ... varn :: exp)
+   
+   exp ::= lam
+         | var
+         | (prim exp1 ... expn)
+         | (exp1 ... expn)
+         
+   prim ::= #bind | #write | #write_church | #write_bool | #read | #halt
+   
+Left-associative

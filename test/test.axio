@@ -1,0 +1,13 @@
+// test.axio
+
+// fibonacci generator
+
+// supporting functions
+(#bind succ (\ w y x :: y (w y x)))
+(#bind + (\ a b :: a succ b))
+(#bind phi (\ a b f :: f a b))
+(#bind sigma (\ x :: phi (x false) (+ (x true) (x false)))) 
+(#bind fib (\ n :: (n sigma (phi 0 1)) false))
+
+// exit
+//(#halt (fib 5))
