@@ -10,4 +10,4 @@
 (#bind fib (\ n :: (n sigma (phi 0 1)) false))
 
 // exit
-//(#halt (fib 5))
+(#halt (fib 5))

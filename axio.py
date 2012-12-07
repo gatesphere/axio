@@ -6,11 +6,13 @@ from funcparserlib.lexer import make_tokenizer, Token, LexerError
 from funcparserlib.parser import (some, many, finished, skip, 
                                   with_forward_decls, oneplus, 
                                   NoParseError)
+from funcparserlib.util import pretty_tree
 import sys, getopt
 
 ######################
 ## globals
 axio_version = "20121206"
+axio_symbol_lookup_table = {}
 
 ######################
 ## lexer
@@ -61,6 +63,24 @@ tokval = lambda tok: tok.value
 toktype = lambda type: lambda tok: tok.type == type
 make_number = lambda str: float(str)
 
+def flatten(x):
+  result = []
+  for el in x:
+    if hasattr(el, "__iter__") and not isinstance(el, basestring):
+      result.extend(flatten(el))
+    else:
+      result.append(el)
+  return result
+
+class Grouping(object):
+  def __init__(self, kids):
+    self.kids = list(flatten([kids]))
+
+class Lambda(Grouping): pass
+class Form(Grouping): pass
+class Expression(Grouping): pass
+class Program(Grouping): pass
+
 def parse(tokens):
   var = some(toktype("name")) | some(toktype("number"))
 
@@ -72,31 +92,35 @@ def parse(tokens):
   prim_bind = some(toktype("kw_bind"))
   prim_halt = some(toktype("kw_halt"))
 
-  exp = with_forward_decls(lambda: lam | var | prim_exp | exprn)
-  lam = open_form + op_lambda + many(var) + op_map + oneplus(exp) + close_form
+  exp = with_forward_decls(lambda: lam | var | prim_exp | exprn) >> Expression
+  lam = open_form + op_lambda + many(var) + op_map + oneplus(exp) + close_form >> Lambda
   bind_exp = open_form + prim_bind + var + lam + close_form
   halt_exp = open_form + prim_halt + exp + close_form
   prim_exp = bind_exp | halt_exp
-  exprn = open_form + oneplus(exp) + close_form
+  exprn = open_form + oneplus(exp) + close_form >> Form
 
-  prog = many(exp) + skip(finished)
+  prog = many(exp) + skip(finished) >> Program
   
   return prog.parse(tokens)
 
-def pprint(ts):
-  for t in ts:
-    print "===="
-    print_node(t)
-    print "===="
-
-def print_node(node, depth=0):
-  spaces = " " * (depth * 2)
-  for x in node:
-    try:
-      iter(x)
-      print_node(x, depth + 1)
-    except:
-      print "%s%s" % (spaces, tokval(x))
+def pprint(tree):
+  def kids(x):
+    if isinstance(x, Grouping):
+      return x.kids
+    else:
+      return []
+  def show(x):
+    if isinstance(x, Lambda):
+      return '{Lambda}'
+    elif isinstance(x, Form):
+      return '{Form}'
+    elif isinstance(x, Expression):
+      return '{Expression}'
+    elif isinstance(x, Program):
+      return '{Program}'
+    else:
+      return tokval(x)
+  return pretty_tree(tree, kids, show)
 
 ######################
 ## interpreter
